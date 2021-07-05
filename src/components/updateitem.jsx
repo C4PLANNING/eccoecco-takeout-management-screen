@@ -16,11 +16,11 @@ const UpdateItem = ({setEditing, currentItem, updateItem }) => {
     };
 
 
-    const onChange = e => {
-        let { name, value } = e.target;
-        if (name === "price") value = "¥" + value;
-        setItem({ ...item, [name]: value });
-    };
+    // const onChange = e => {
+    //     let { name, value } = e.target;
+    //     if (name === "price") value = "¥" + value;
+    //     setItem({ ...item, [name]: value });
+    // };
 
     const onSelectedChange = e => {
         const { name, value } = e.target;
@@ -34,18 +34,15 @@ const UpdateItem = ({setEditing, currentItem, updateItem }) => {
             <label htmlFor="Update Item">アイテム:</label><br/>
             <field>
                 <label>名称　</label>
-                <input type="text" name="name" value={item.name} onChange={onChange} />
+                {item.name}
             </field><br/>
             <field>
-                <label>タイプ</label>
-                <select name="type" value={item.type} onChange={onChange}>
-                    <option value="料理">料理</option>
-                    <option value="オプション">オプション</option>
-                </select>
+                <label>タイプ　</label>
+                {item.type}
             </field><br/>
             <field>
                 <label>価格　¥</label>
-                <input type="text" name="price" value={item.price.slice(1)} onChange={onChange} />
+                {item.price.slice(1)}
             </field><br/>
             <field>
                 <label>卵トッピング</label>

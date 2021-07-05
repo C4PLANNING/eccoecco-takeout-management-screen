@@ -1,11 +1,18 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 
 import firebase from "firebase/app";
 import "firebase/firestore";
+import UpdateBookingMaxItem from "./updatebookingmaxitem";
+  
+function zeroPadding(date) {
+  var [year, month, day] = date.split("/");
+  return year + "-" + ("0" + month).slice(-2);
+}
 
 const CalendarItem = () => {
   const DEFAULT_ORDER_LIMIT = 5;
   const weeks = ['日', '月', '火', '水', '木', '金', '土']
+  const timeList = ["11時台", "12時台", "13時台", "14時台", "17時台", "18時台", "19時台", "20時台", "21時台"];
   const date = new Date()
   const config = { 
     show: 1,
@@ -13,13 +20,51 @@ const CalendarItem = () => {
   const [isExists, setIsExists] = useState(false);
   const [year, setYear] = useState(date.getFullYear());
   const [month, setMonth] = useState(date.getMonth() + 1)
-  const [monthly, setMonthly] = useState({})
+  const [monthly, setMonthly] = useState({});
+  const [allStop, setAllStop] = useState(false);
+
+  /* 初期化するためのカラ変数配列 */
+  const initialItemState = [
+    {
+      id: zeroPadding(new Date().toLocaleDateString()),
+      max: [],
+    },
+  ];
+  /* currentItemステート変数をセット */
+  const [currentItem, setCurrentItem] = useState(initialItemState);
+  /* 編集モードフラッグステート変数をセット */
+  const [editing, setEditing] = useState(false);
+
+  /* editモードをtrueにしてcurrentItemにEditボタンを押下したitemを格納　*/
+  const editItem = (day) => {
+    console.log(monthly)
+    setCurrentItem({
+      id: monthly.id,
+      day: day,
+      max: monthly.max[day],
+    });
+    setEditing(true);
+  };
+
+  /* firestoreのデータを更新 */
+  const updateItem = ({ currentItem }, updatedItem) => {
+    console.log("Firestoreで更新するデータ:　", updatedItem, currentItem.id);
+    //editフラグをfalseに
+    console.log(currentItem.id);
+    setEditing(false);
+    firebase
+      .firestore()
+      .collection("booking")
+      .doc(currentItem.id)
+      .update(updatedItem);
+  };
 
   useEffect(() => {
     showCalendar(year, month)
   }, [monthly])
 
   useEffect(() => {
+
     const _month = ("0" + month).slice(-2);
     const _id = `${year}-${_month}`;
     const unsubscribe = firebase
@@ -27,24 +72,30 @@ const CalendarItem = () => {
       .collection("booking")
       .doc(_id)
       .onSnapshot((doc) => {
-        if (doc.data()) {
-          setMonthly(doc.data());
+        if (doc.exists) {
+          console.log(doc.id)
+          setMonthly({
+            id: doc.id,
+            ...doc.data(),
+          });
+        
         } else {
           setMonthly({})
         }
         setIsExists(doc.data());
       });
-    return () => unsubscribe()
+    return () => unsubscribe();
   }, [month]);
 
   const showCalendar = async (year, month) => {
     
     for (let i = 0; i < config.show; i++) {
-      const calendarHtml = await createCalendar(year, month)
+      const calendarHtml = await createCalendar(year, month);
       document.querySelector('#calendar').innerHTML = ''
       const sec = document.createElement('section')
       sec.innerHTML = calendarHtml
       document.querySelector('#calendar').appendChild(sec)
+      document.querySelectorAll(".button").forEach((el, day) => el.addEventListener("click", () => editItem(day)));
     }
   }
 
@@ -104,9 +155,9 @@ const CalendarItem = () => {
       //日
       const _date = ("0" + (day + 1)).slice(-2);
       const _id = `${year}-${_month}-${_date}-current`
-      calendarHtml += `<td class="current-booking" id=${_id}>${cur_val ? cur_val[day] : 0}</td>`;
+      calendarHtml += `<td class="current-booking" id=${_id}>0</td>`;
     });
-    calendarHtml += "</tr><tr><td>売止</td>";
+    calendarHtml += "</tr><tr><td>一括売止</td>";
 
     const stop_flag = monthly &&  monthly.stop;
     [...Array(dayCount - 1)].map((_, day) => {
@@ -119,20 +170,23 @@ const CalendarItem = () => {
     });
     calendarHtml += '</tr><tr><td style="min-width: 80px;">販売数上限</td>';
 
-    const max_val = monthly && monthly.max;
     [...Array(dayCount - 1)].map((_, day) => {
-      //月
-      const _month = ("0" + month).slice(-2);
-      //日
-      const _date = ("0" + (day + 1)).slice(-2);
-      const _id = `${year}-${_month}-${_date}-max`;
-      calendarHtml += `<td><input type="number" class="max-booking" id=${_id} value=${max_val && !stop_flag[day] ? max_val[day] : null} style="max-width: 30px;border: none;"/></td>`;
-    });
-    calendarHtml += '</tr></table>';
-    return calendarHtml;
-    
+      calendarHtml += `<td><button class="button">▽</button></td>`;
       
+    });
+    
+    // const max_val = monthly && monthly.max;
+    // [...Array(dayCount - 1)].map((_, day) => {
+    //   //月
+    //   const _month = ("0" + month).slice(-2);
+    //   //日
+    //   const _date = ("0" + (day + 1)).slice(-2);
+    //   const _id = `${year}-${_month}-${_date}-max`;
+    //   calendarHtml += `<td><input type="number" class="max-booking" id=${_id} value=${max_val && !stop_flag[day] ? max_val[day] : null} style="max-width: 30px;border: none;"/></td>`;
+    // });
+    calendarHtml += '</tr></table>';
    
+    return calendarHtml;
   }
 
   const moveCalendar = (e) => {
@@ -159,23 +213,20 @@ const CalendarItem = () => {
   }
   
   const submit = async () => {
-    let curList = [];
-    document.querySelectorAll('.current-booking').forEach(cur => curList.push(parseInt(cur.textContent, 10)));
-    
     let stopList = []
     document.querySelectorAll('.stop-booking').forEach(stop => stopList.push(stop.checked ? true : false));
 
-    let maxList = []
-    const bookingList = document.querySelectorAll('.max-booking')
-    for (let i = 0; i < bookingList.length; i++) {
-      if (isReallyNaN(bookingList[i].value) || bookingList[i].value < 0) {
-        console.log(i, typeof bookingList[i].value )
-        alert("正しい数値を入力してください");
-        return;
-      }
-      maxList.push(parseInt(bookingList[i].value, 10));
-    }
-    stopList.forEach((stop, i) => {if (stop) maxList[i] = 0; })
+    // let maxList = []
+    // const bookingList = document.querySelectorAll('.max-booking')
+    // for (let i = 0; i < bookingList.length; i++) {
+    //   if (isReallyNaN(bookingList[i].value) || bookingList[i].value < 0) {
+    //     console.log(i, typeof bookingList[i].value )
+    //     alert("正しい数値を入力してください");
+    //     return;
+    //   }
+    //   maxList.push(parseInt(bookingList[i].value, 10));
+    // }
+    // stopList.forEach((stop, i) => {if (stop) maxList[i] = 0; })
     //月
     const _month = ("0" + month).slice(-2);
     const _id = `${year}-${_month}`;
@@ -185,10 +236,9 @@ const CalendarItem = () => {
         .firestore()
         .collection("booking")
         .doc(_id)
-        .set({
-          current: curList,
+        .update({
           stop: stopList,
-          max: maxList,
+          // max: maxList,
         })
       alert("更新完了しました");
       window.location.reload();
@@ -197,7 +247,7 @@ const CalendarItem = () => {
     }
   }
 
-  const setting = () => {
+  const setting = async () => {
     let curList = [];
     document.querySelectorAll('.current-booking').forEach(cur => curList.push(parseInt(cur.textContent, 10)));
     
@@ -206,29 +256,34 @@ const CalendarItem = () => {
     let stopList = []
     document.querySelectorAll('.stop-booking').forEach((_, i) => stopList.push(weekend[i] ? true : false));
 
-    let maxList = []
-    document.querySelectorAll('.max-booking').forEach(_ => maxList.push(DEFAULT_ORDER_LIMIT));
-    stopList.forEach((stop, i) => {if (stop)  maxList[i] = 0; })
+    // let maxList = []
+    // document.querySelectorAll('.max-booking').forEach(_ => maxList.push(DEFAULT_ORDER_LIMIT));
+    // stopList.forEach((stop, i) => {if (stop)  maxList[i] = 0; })
     //月
     const _month = ("0" + month).slice(-2);
     const _id = `${year}-${_month}`;
-    console.log(_id);
+
+    const daily = {}
+    stopList.forEach((flag, i) => {
+      let stop_timezone = []
+      timeList.forEach((time) => stop_timezone.push({ [time] : [flag, flag ? 0 : DEFAULT_ORDER_LIMIT] }));
+      daily[i] = stop_timezone
+    })
     try {
-      firebase
+      await firebase
         .firestore()
         .collection("booking")
         .doc(_id)
         .set({
           current: curList,
           stop: stopList,
-          max: maxList,
-        })
+          max: daily,
+        });
     } catch (e) {
       console.log(e);
     }
     setIsExists(true);
     alert("初期値を設定しました");
-    window.location.reload();
   }
 
   return (
@@ -236,8 +291,16 @@ const CalendarItem = () => {
       <button id="prev" type="button" onClick={(e) => moveCalendar(e)}>前の月</button>
       <button id="next" type="button" onClick={(e) => moveCalendar(e)}>次の月</button>
       <div id="calendar"></div>
+      {editing && (
+        <UpdateBookingMaxItem
+          setEditing={setEditing}
+          currentItem={currentItem}
+          updateItem={updateItem}
+          allStop={allStop}
+        />
+      )}
       {!isExists && <button id="before" onClick={setting}>初期値設定</button>}
-      <button id="submit" onClick={submit}>更新</button>
+      {isExists && <button id="submit" onClick={submit}>更新</button>}
     </>
   );
 };

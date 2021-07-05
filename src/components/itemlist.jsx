@@ -36,7 +36,7 @@ const useItems = () => {
 
 const ItemList = ({editItem}) => {
   /* useItem() API を listItem変数に格納 */
-  const listItem = useItems()
+  const listItem = useItems();
   return (
     <table className="tg">
       <tbody>
