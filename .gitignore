@@ -69,3 +69,4 @@ gatsby-browser.js
 .cache/
 public/
 package-lock.json
+functions/
