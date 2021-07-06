@@ -21,12 +21,12 @@ const CalendarItem = () => {
   const [year, setYear] = useState(date.getFullYear());
   const [month, setMonth] = useState(date.getMonth() + 1)
   const [monthly, setMonthly] = useState({});
-  const [allStop, setAllStop] = useState(false);
-
+  const [allStop, setAllStop] = useState([false, ""]);
   /* 初期化するためのカラ変数配列 */
   const initialItemState = [
     {
       id: zeroPadding(new Date().toLocaleDateString()),
+      day: "",
       max: [],
     },
   ];
@@ -37,7 +37,6 @@ const CalendarItem = () => {
 
   /* editモードをtrueにしてcurrentItemにEditボタンを押下したitemを格納　*/
   const editItem = (day) => {
-    console.log(monthly)
     setCurrentItem({
       id: monthly.id,
       day: day,
@@ -46,25 +45,11 @@ const CalendarItem = () => {
     setEditing(true);
   };
 
-  /* firestoreのデータを更新 */
-  const updateItem = ({ currentItem }, updatedItem) => {
-    console.log("Firestoreで更新するデータ:　", updatedItem, currentItem.id);
-    //editフラグをfalseに
-    console.log(currentItem.id);
-    setEditing(false);
-    firebase
-      .firestore()
-      .collection("booking")
-      .doc(currentItem.id)
-      .update(updatedItem);
-  };
-
   useEffect(() => {
     showCalendar(year, month)
   }, [monthly])
 
   useEffect(() => {
-
     const _month = ("0" + month).slice(-2);
     const _id = `${year}-${_month}`;
     const unsubscribe = firebase
@@ -73,7 +58,6 @@ const CalendarItem = () => {
       .doc(_id)
       .onSnapshot((doc) => {
         if (doc.exists) {
-          console.log(doc.id)
           setMonthly({
             id: doc.id,
             ...doc.data(),
@@ -82,20 +66,27 @@ const CalendarItem = () => {
         } else {
           setMonthly({})
         }
-        setIsExists(doc.data());
+        setIsExists(doc.exists);
       });
     return () => unsubscribe();
   }, [month]);
 
   const showCalendar = async (year, month) => {
-    
+    const _id = year + "-" + ("0" + month).slice(-2);
+    setEditing(false);
     for (let i = 0; i < config.show; i++) {
       const calendarHtml = await createCalendar(year, month);
+      
       document.querySelector('#calendar').innerHTML = ''
       const sec = document.createElement('section')
       sec.innerHTML = calendarHtml
       document.querySelector('#calendar').appendChild(sec)
-      document.querySelectorAll(".button").forEach((el, day) => el.addEventListener("click", () => editItem(day)));
+      document.querySelectorAll(".button").forEach((el, day) => el.addEventListener("click", () => { setAllStop([monthly.stop[day], day]); editItem(day); }));
+      if (Object.keys(monthly).length <= 0) {
+        const elem = document.querySelector('.collapse');
+        elem.parentNode.removeChild(elem);
+      }
+      document.querySelectorAll('.stop-booking').forEach((el, day) => el.addEventListener("click", () => _onclick(el.id, el.checked)))
     }
   }
 
@@ -111,7 +102,6 @@ const CalendarItem = () => {
 
     calendarHtml += '<h1>' + year + '/' + month + '</h1>';
     calendarHtml += '<table>';
-    
     
     // 曜日の行を作成
     for (let w = 0; w < 6; w++) {
@@ -154,7 +144,7 @@ const CalendarItem = () => {
       const _month = ("0" + month).slice(-2);
       //日
       const _date = ("0" + (day + 1)).slice(-2);
-      const _id = `${year}-${_month}-${_date}-current`
+      const _id = `current-${year}-${_month}-${_date}`
       calendarHtml += `<td class="current-booking" id=${_id}>0</td>`;
     });
     calendarHtml += "</tr><tr><td>一括売止</td>";
@@ -165,14 +155,13 @@ const CalendarItem = () => {
       const _month = ("0" + month).slice(-2);
       //日
       const _date = ("0" + (day + 1)).slice(-2);
-      const _id = `${year}-${_month}-${_date}-stop`;
-      calendarHtml += `<td><input type="checkbox" class="stop-booking" id=${_id} ${stop_flag && stop_flag[day] ? "checked" : ""}/></td>`;
+      const _id = `stop-${year}-${_month}-${_date}`;
+      calendarHtml += `<td><input type="checkbox" class="stop-booking" id=${_id} ${stop_flag && stop_flag[day] ? "checked" : ""} /></td>`;
     });
-    calendarHtml += '</tr><tr><td style="min-width: 80px;">販売数上限</td>';
 
+    calendarHtml += '</tr><tr class="collapse"><td style="min-width: 80px;">販売数上限</td>';
     [...Array(dayCount - 1)].map((_, day) => {
       calendarHtml += `<td><button class="button">▽</button></td>`;
-      
     });
     
     // const max_val = monthly && monthly.max;
@@ -211,6 +200,11 @@ const CalendarItem = () => {
   const isReallyNaN = (x) => {
     return x !== x;    // xがNaNであればtrue, それ以外ではfalse
   }
+
+  const _onclick = (id, flag) => {
+    const _id = id.split("-").slice(1).join("-")
+    setAllStop([flag, _id]);
+  }
   
   const submit = async () => {
     let stopList = []
@@ -230,7 +224,6 @@ const CalendarItem = () => {
     //月
     const _month = ("0" + month).slice(-2);
     const _id = `${year}-${_month}`;
-    console.log(_id);
     try {
       await firebase
         .firestore()
@@ -295,12 +288,14 @@ const CalendarItem = () => {
         <UpdateBookingMaxItem
           setEditing={setEditing}
           currentItem={currentItem}
-          updateItem={updateItem}
           allStop={allStop}
         />
       )}
-      {!isExists && <button id="before" onClick={setting}>初期値設定</button>}
-      {isExists && <button id="submit" onClick={submit}>更新</button>}
+      <div style={{ display: editing ? "none" : "block"}}>
+        {!isExists && <button id="before" onClick={setting}>初期値設定</button>}
+        {isExists && <button id="submit" onClick={submit}>更新</button>}
+      </div>
+      
     </>
   );
 };
