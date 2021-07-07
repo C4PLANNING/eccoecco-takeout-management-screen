@@ -2,7 +2,14 @@ import React, { useState, useEffect } from "react"
 import firebase from "firebase/app";
 import "firebase/firestore";
 import "../styles/global.css"
-
+import 'date-fns';
+import Grid from '@material-ui/core/Grid';
+import DateFnsUtils from '@date-io/date-fns';
+import {
+  MuiPickersUtilsProvider,
+  KeyboardTimePicker,
+  KeyboardDatePicker,
+} from '@material-ui/pickers';
 
 const useItems = () => {
   const [items, setItems] = useState([]);
@@ -20,7 +27,7 @@ const useItems = () => {
           count: d.data().planName.split("\n").length,
           ...d.data(),
         }));
-        setItems(data)
+        setItems(data.sort((a, b) => a.reservationTime < b.reservationTime ? -1 : 1))
       });
     return () => unsubscribe();
   }, []);
@@ -29,7 +36,37 @@ const useItems = () => {
 
 const OrderList = ({ orderItem }) => {
   const listOrder = useItems();
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const handleDateChange = (date) => {
+    setSelectedDate(date);
+    console.log(selectedDate.toLocaleDateString());
+  };
+
+  const zeroPadding = (date) => {
+    var [year, month, day] = date.split("/");
+    return year + "-" + ("0" + month).slice(-2) + "-" + ("0" + day).slice(-2);
+  }
+
   return (
+    <>
+     <MuiPickersUtilsProvider utils={DateFnsUtils}>
+      <Grid container justifyContent="space-around">
+        <KeyboardDatePicker
+          disableToolbar
+          variant="inline"
+          format="yyyy-MM-dd"
+          margin="normal"
+          id="date-picker-inline"
+          label="オーダー日"
+          value={selectedDate}
+          onChange={handleDateChange}
+          KeyboardButtonProps={{
+            'aria-label': 'change date',
+          }}
+        />
+      </Grid>
+    </MuiPickersUtilsProvider>
     <table className="tg">
       <tbody>
       <tr>
@@ -42,7 +79,7 @@ const OrderList = ({ orderItem }) => {
       </tr>
       </tbody>
 
-      {listOrder.map(item => (
+      {listOrder.filter(item => item.reservationTime.split(' ')[0] === zeroPadding(selectedDate.toLocaleDateString())).map(item => (
       <tbody key={item.id}>
         <tr>
           <td rowspan={item.count}>{item.reservationTime}</td>
@@ -60,7 +97,8 @@ const OrderList = ({ orderItem }) => {
         ))}
       </tbody>
       ))}
-    </table>
+      </table>
+    </>
   )
 }
 

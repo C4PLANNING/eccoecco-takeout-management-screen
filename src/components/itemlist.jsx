@@ -18,7 +18,7 @@ const useItems = () => {
           uid: d.id,
           ...d.data(),
         }));
-        setItems(data)
+        setItems(data);
       });
     return () => unsubscribe();
   }, []);

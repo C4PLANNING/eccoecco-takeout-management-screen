@@ -140,7 +140,7 @@ const CalendarItem = () => {
       //日
       const _date = ("0" + (day + 1)).slice(-2);
       const _id = `current-${year}-${_month}-${_date}`
-      calendarHtml += `<td class="current-booking" id=${_id}>0</td>`;
+      calendarHtml += `<td class="current-booking" id=${_id}>${cur_val ? cur_val[day] : 0}</td>`;
     });
     calendarHtml += "</tr><tr><td>一括売止</td>";
 
