@@ -9,14 +9,15 @@ function zeroPadding(date) {
   return year + "-" + ("0" + month).slice(-2);
 }
 
+const holidays = ["01-01", "01-11", "02-11", "02-23", "03-20", "04-29", "05-03", "05-04", "05-05", "07-22", "07-23", "08-09", "09-20", "09-23", "11-03", "11-23"];
 const CalendarItem = () => {
   const DEFAULT_ORDER_LIMIT = 5;
-  const weeks = ['日', '月', '火', '水', '木', '金', '土']
+  const weeks = ['日', '月', '火', '水', '木', '金', '土'];
   const timeList = ["11時台", "12時台", "13時台", "14時台", "17時台", "18時台", "19時台", "20時台", "21時台"];
-  const date = new Date()
-  const config = { 
+  const date = new Date();
+  const config = {
     show: 1,
-  }
+  };
   const [isExists, setIsExists] = useState(false);
   const [year, setYear] = useState(date.getFullYear());
   const [month, setMonth] = useState(date.getMonth() + 1)
@@ -94,8 +95,6 @@ const CalendarItem = () => {
     const startDate = new Date(year, month - 1, 1) // 月の最初の日を取得
     const endDate = new Date(year, month, 0) // 月の最後の日を取得
     const endDayCount = endDate.getDate() // 月の末日
-    const lastMonthEndDate = new Date(year, month - 1, 0) // 前月の最後の日の情報
-    const lastMonthendDayCount = lastMonthEndDate.getDate() // 前月の末日
     const startDay = startDate.getDay() // 月の最初の日の曜日を取得
     let dayCount = 1 // 日にちのカウント
     let calendarHtml = '' // HTMLを組み立てる変数
@@ -122,12 +121,8 @@ const CalendarItem = () => {
         
           calendarHtml = calendarHtml.replace(/\<td.*?\>.+?\<\/td\>/, "")
           // 1行目で1日の曜日の前
-          // let num = lastMonthendDayCount - startDay + d + 1
-          // calendarHtml += '<td class="is-disabled">' + num + '</td>'
         } else if (dayCount > endDayCount) {
           // 末尾の日数を超えた
-          // let num = dayCount - endDayCount
-          // calendarHtml += '<td class="is-disabled">' + num + '</td>'
           calendarHtml = calendarHtml.replace(/(.*)\<td.*\>.+?\<\/td\>(\<tr\>.*)/, "$1$2")
         } else {
           calendarHtml += '<td>' + dayCount + '</td>'
@@ -164,15 +159,6 @@ const CalendarItem = () => {
       calendarHtml += `<td><button class="button">▽</button></td>`;
     });
     
-    // const max_val = monthly && monthly.max;
-    // [...Array(dayCount - 1)].map((_, day) => {
-    //   //月
-    //   const _month = ("0" + month).slice(-2);
-    //   //日
-    //   const _date = ("0" + (day + 1)).slice(-2);
-    //   const _id = `${year}-${_month}-${_date}-max`;
-    //   calendarHtml += `<td><input type="number" class="max-booking" id=${_id} value=${max_val && !stop_flag[day] ? max_val[day] : null} style="max-width: 30px;border: none;"/></td>`;
-    // });
     calendarHtml += '</tr></table>';
    
     return calendarHtml;
@@ -196,70 +182,29 @@ const CalendarItem = () => {
     }
     showCalendar(year, month);
   }
-  
-  const isReallyNaN = (x) => {
-    return x !== x;    // xがNaNであればtrue, それ以外ではfalse
-  }
 
   const _onclick = (id, flag) => {
     const _id = id.split("-").slice(1).join("-")
     setAllStop([flag, _id]);
   }
   
-  const submit = async () => {
-    let stopList = []
-    document.querySelectorAll('.stop-booking').forEach(stop => stopList.push(stop.checked ? true : false));
-
-    // let maxList = []
-    // const bookingList = document.querySelectorAll('.max-booking')
-    // for (let i = 0; i < bookingList.length; i++) {
-    //   if (isReallyNaN(bookingList[i].value) || bookingList[i].value < 0) {
-    //     console.log(i, typeof bookingList[i].value )
-    //     alert("正しい数値を入力してください");
-    //     return;
-    //   }
-    //   maxList.push(parseInt(bookingList[i].value, 10));
-    // }
-    // stopList.forEach((stop, i) => {if (stop) maxList[i] = 0; })
+  const setting = async () => {
     //月
     const _month = ("0" + month).slice(-2);
     const _id = `${year}-${_month}`;
-    try {
-      await firebase
-        .firestore()
-        .collection("booking")
-        .doc(_id)
-        .update({
-          stop: stopList,
-          // max: maxList,
-        })
-      alert("更新完了しました");
-      window.location.reload();
-    } catch (e) {
-      console.log(e);
-    }
-  }
 
-  const setting = async () => {
     let curList = [];
     document.querySelectorAll('.current-booking').forEach(cur => curList.push(parseInt(cur.textContent, 10)));
     
     let weekend = [];
-    document.querySelectorAll('.week').forEach(day => weekend.push(day.textContent === "土" || day.textContent === "日" ? true : false));
+    document.querySelectorAll('.week').forEach(day => weekend.push(day.textContent === "日" ? true : false));
     let stopList = []
-    document.querySelectorAll('.stop-booking').forEach((_, i) => stopList.push(weekend[i] ? true : false));
-
-    // let maxList = []
-    // document.querySelectorAll('.max-booking').forEach(_ => maxList.push(DEFAULT_ORDER_LIMIT));
-    // stopList.forEach((stop, i) => {if (stop)  maxList[i] = 0; })
-    //月
-    const _month = ("0" + month).slice(-2);
-    const _id = `${year}-${_month}`;
+    document.querySelectorAll('.stop-booking').forEach((_, i) => stopList.push(weekend[i] || holidays.includes(_month + "-" + ("0" + (i + 1)).slice(-2)) ? true : false));
 
     const daily = {}
     stopList.forEach((flag, i) => {
-      let stop_timezone = []
-      timeList.forEach((time) => stop_timezone.push({ [time] : [flag, flag ? 0 : DEFAULT_ORDER_LIMIT] }));
+      let stop_timezone = {}
+      timeList.forEach((time) => stop_timezone[time] = [flag, flag ? 0 : DEFAULT_ORDER_LIMIT]);
       daily[i] = stop_timezone
     })
     try {
@@ -293,9 +238,7 @@ const CalendarItem = () => {
       )}
       <div style={{ display: editing ? "none" : "block"}}>
         {!isExists && <button id="before" onClick={setting}>初期値設定</button>}
-        {isExists && <button id="submit" onClick={submit}>更新</button>}
       </div>
-      
     </>
   );
 };

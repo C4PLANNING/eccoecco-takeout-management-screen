@@ -6,40 +6,23 @@ const timeList = ["11時台", "12時台", "13時台", "14時台", "17時台", "1
 const UpdateBookingMaxItem = ({ setEditing, currentItem, allStop }) => {
   const [item, setItem] = useState(currentItem);
   const [flag, setFlag] = useState([]);
-  const ref_0 = useRef(null);
-  const ref_1 = useRef(null);
-  const ref_2 = useRef(null);
-  const ref_3 = useRef(null);
-  const ref_4 = useRef(null);
-  const ref_5 = useRef(null);
-  const ref_6 = useRef(null);
-  const ref_7 = useRef(null);
-  const ref_8 = useRef(null);
-  const refs = [ref_0, ref_1, ref_2, ref_3, ref_4, ref_5, ref_6, ref_7, ref_8];
-  const valueRef_0 = useRef(null);
-  const valueRef_1 = useRef(null);
-  const valueRef_2 = useRef(null);
-  const valueRef_3 = useRef(null);
-  const valueRef_4 = useRef(null);
-  const valueRef_5 = useRef(null);
-  const valueRef_6 = useRef(null);
-  const valueRef_7 = useRef(null);
-  const valueRef_8 = useRef(null);
-  const valueRefs = [valueRef_0, valueRef_1, valueRef_2, valueRef_3, valueRef_4, valueRef_5, valueRef_6, valueRef_7, valueRef_8];
   const renderFlgRef = useRef(null);
   
   useEffect(() => {
     setItem(currentItem);
-    const list = currentItem.max.map((item) => Object.values(item)[0][0]);
-    setFlag(list);
+    const list = currentItem.max;
+    setFlag(timeList.map(time => list[time][0]));
     console.log("useEffectが渡したcurrentItem: ", currentItem);
-    document.querySelectorAll(".stop-timezone-booking-" + currentItem.id + "-" + ("0" + (currentItem.day + 1)).slice(-2)).forEach((el, i) => el.checked = list[i]);
-    
+    document
+      .querySelectorAll(".stop-timezone-booking-" + currentItem.id + "-" + ("0" + (currentItem.day + 1))
+      .slice(-2)).forEach((el, i) => el.checked = timeList.map(time => list[time][0])[i]);
   }, [currentItem]);
 
   useEffect(() => {
     if (renderFlgRef.current) {
       document.querySelectorAll(".stop-timezone-booking-" + allStop[1]).forEach((el) => el.checked = allStop[0]);
+      const newFlag = Array.from(flag);
+      setFlag(newFlag.map(i => allStop[0]));
     } else {
       renderFlgRef.current = true
     }
@@ -48,16 +31,33 @@ const UpdateBookingMaxItem = ({ setEditing, currentItem, allStop }) => {
   const updateFlag = (i) => {
     const newFlag = Array.from(flag);
     newFlag.splice(i, 1, !flag[i]);
-    setFlag(newFlag)
+    setFlag(newFlag);
+  }
+
+  const isReallyNaN = (x) => {
+    return x !== x;    // xがNaNであればtrue, それ以外ではfalse
   }
 
   const submit = async (e) => {
     e.preventDefault();
     console.log("onSubmitで渡されたidとitems", { item });
     let stopList = []
-    document.querySelectorAll(".stop-timezone-booking-" + currentItem.id + "-" + ("0" + (currentItem.day + 1)).slice(-2)).forEach(stop => stopList.push(stop.checked ? true : false));
-    stopList.forEach((stop, i) => { const value = parseInt(Object.values(item.max[i])[0][1], 10); item.max[i][timeList[i]] = [stop, stop ? 0 : value]; })
-    console.log(currentItem.id)
+    document
+      .querySelectorAll(".stop-timezone-booking-" + currentItem.id + "-" + ("0" + (currentItem.day + 1)).slice(-2))
+      .forEach(stop => stopList.push(stop.checked ? true : false));
+    stopList.forEach((stop, i) => {
+      const value = parseInt(item.max[timeList[i]][1], 10);
+      item.max[timeList[i]] = [stop, stop ? 0 : value];
+    })
+
+    //バリデーションチェック
+    const bookingList = document.querySelectorAll('.max-booking');
+    for (let i = 0; i < bookingList.length; i++) {
+      if (!flag[i] && (isReallyNaN(parseInt(bookingList[i].value, 10)) || parseInt(bookingList[i].value, 10) < 0)) {
+        alert("正しい数値を入力してください");
+        return;
+      }
+    }
     try {
       const data = await firebase
         .firestore()
@@ -65,10 +65,10 @@ const UpdateBookingMaxItem = ({ setEditing, currentItem, allStop }) => {
         .doc(currentItem.id)
         .get();
       if (data.exists) {
-        const _max = data.data().max
+        const _max = data.data().max;
         const newMax = { ..._max, [currentItem.day]: item.max };
         const _stop = data.data().stop;
-          let newStop = Array.from(_stop);
+        let newStop = Array.from(_stop);
         if (flag.every(i => i)) {
           newStop.splice(currentItem.day, 1, true);
         } else {
@@ -83,7 +83,7 @@ const UpdateBookingMaxItem = ({ setEditing, currentItem, allStop }) => {
             stop: newStop
           })
         alert("更新完了しました");
-        window.location.reload();
+        // window.location.reload();
       } else {
         console.log("error")
       }
@@ -94,17 +94,17 @@ const UpdateBookingMaxItem = ({ setEditing, currentItem, allStop }) => {
   
   const onChange = e => {
     let { id, value } = e.target;
-    const index = id.split("-").pop();
-    const [newValue] = Object.values(item.max[index]);
+    const index = parseInt(id.split("-").pop(), 10);
+    const newValue = item.max[timeList[index]];
     newValue[1] = parseInt(value, 10);
-    let newMax = Array.from(item.max);
-    newMax.splice(index, 1, { [timeList[index]]: newValue });
+    let newMax = item.max;
+    newMax[timeList[index]] = newValue;
     setItem({ ...item, max: newMax });
   };
 
   return (
     <>
-      <p>{currentItem.day+1}日</p>
+      <h4>{currentItem.day+1}日</h4>
       <table>
         <tbody>
           <tr>
@@ -116,8 +116,8 @@ const UpdateBookingMaxItem = ({ setEditing, currentItem, allStop }) => {
             return (
               <tr>
                 <td>{time}</td>
-                <td><input type="checkbox" class={"stop-timezone-booking-" + currentItem.id + "-" + ("0" + (currentItem.day + 1)).slice(-2)} id={"stop-timezone-booking" + currentItem.id + "-" + ("0" + (currentItem.day + 1)).slice(-2) + "-" + i} ref={refs[i]} onClick={() => updateFlag(i)} /></td>
-                <td><input type="number" class="max-booking" id={"stop-timezone-booking-number" + currentItem.id + "-" + ("0" + (currentItem.day + 1)).slice(-2) + "-" + i} value={!flag[i] ? item.max[i][time][1] : ""} onChange={onChange} style={{ maxWidth: 30, border: "none" }} ref={valueRefs[i]} /></td>
+                <td><input type="checkbox" class={"stop-timezone-booking-" + currentItem.id + "-" + ("0" + (currentItem.day + 1)).slice(-2)} id={"stop-timezone-booking" + currentItem.id + "-" + ("0" + (currentItem.day + 1)).slice(-2) + "-" + i} onClick={() => updateFlag(i)} /></td>
+                <td><input type="number" class="max-booking" id={"stop-timezone-booking-number" + currentItem.id + "-" + ("0" + (currentItem.day + 1)).slice(-2) + "-" + i} value={!flag[i] ? item.max[time][1] : ""} onChange={onChange} style={{ maxWidth: 30, border: "none" }} /></td>
               </tr>
             )
           }
