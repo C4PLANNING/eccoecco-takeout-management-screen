@@ -47,9 +47,13 @@ const CalendarItem = () => {
   };
 
   useEffect(() => {
-    showCalendar(year, month)
-  }, [monthly])
+    showCalendar(year, month);
+  }, [monthly, editing])
 
+  useEffect(() => {
+    setEditing(false); 
+  }, [monthly])
+  
   useEffect(() => {
     const _month = ("0" + month).slice(-2);
     const _id = `${year}-${_month}`;
@@ -74,7 +78,6 @@ const CalendarItem = () => {
 
   const showCalendar = async (year, month) => {
     const _id = year + "-" + ("0" + month).slice(-2);
-    setEditing(false);
     for (let i = 0; i < config.show; i++) {
       const calendarHtml = await createCalendar(year, month);
       
@@ -87,7 +90,7 @@ const CalendarItem = () => {
         const elem = document.querySelector('.collapse');
         elem.parentNode.removeChild(elem);
       }
-      document.querySelectorAll('.stop-booking').forEach((el, day) => el.addEventListener("click", () => _onclick(el.id, el.checked)))
+      document.querySelectorAll('.stop-booking').forEach((el, day) => el.addEventListener("click", () => _onclick(el.id, el.checked)));
     }
   }
 
@@ -142,19 +145,23 @@ const CalendarItem = () => {
       const _id = `current-${year}-${_month}-${_date}`
       calendarHtml += `<td class="current-booking" id=${_id}>${cur_val ? cur_val[day] : 0}</td>`;
     });
-    calendarHtml += "</tr><tr><td>一括売止</td>";
+    calendarHtml += "</tr>";
 
-    const stop_flag = monthly &&  monthly.stop;
-    [...Array(dayCount - 1)].map((_, day) => {
-      //月
-      const _month = ("0" + month).slice(-2);
-      //日
-      const _date = ("0" + (day + 1)).slice(-2);
-      const _id = `stop-${year}-${_month}-${_date}`;
-      calendarHtml += `<td><input type="checkbox" class="stop-booking" id=${_id} ${stop_flag && stop_flag[day] ? "checked" : ""} /></td>`;
-    });
+    if (editing) {
+      calendarHtml += "<tr><td>一括売止</td>";
+      const stop_flag = monthly && monthly.stop;
+      [...Array(dayCount - 1)].map((_, day) => {
+        //月
+        const _month = ("0" + month).slice(-2);
+        //日
+        const _date = ("0" + (day + 1)).slice(-2);
+        const _id = `stop-${year}-${_month}-${_date}`;
+        calendarHtml += `<td><input type="checkbox" class="stop-booking" id=${_id} ${stop_flag && stop_flag[day] ? "checked" : ""} /></td>`;
+      });
+      calendarHtml += '</tr>';
+    }
 
-    calendarHtml += '</tr><tr class="collapse"><td style="min-width: 80px;">販売数上限</td>';
+    calendarHtml += '<tr class="collapse"><td style="min-width: 80px;">販売数上限</td>';
     [...Array(dayCount - 1)].map((_, day) => {
       calendarHtml += `<td><button class="button">▽</button></td>`;
     });
