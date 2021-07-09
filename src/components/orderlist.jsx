@@ -63,18 +63,18 @@ const OrderList = ({ orderItem }) => {
         const now = new Date();
         data.forEach((item, i) => {
           const diff = new Date(item.reservationTime.replace(/-/g, "/")) - now;
-          if (diff / (1000 * 60) <= 30.0) {
-            document.querySelector("#row-" + i).childNodes.forEach(el => el.style.backgroundColor = "rgba(255, 86, 137, 0.4)");
+          if (diff / (1000 * 60) <= 30.0 && !flag[i]) {
+            document.querySelector("#row-" + i).childNodes.forEach(el => el.style.backgroundColor = "rgb(255,193,7)");
             document.querySelectorAll(".row-sub" + i).forEach(el =>
-              el.childNodes.forEach(item => item.style.backgroundColor = "rgba(255, 86, 137, 0.4)")
+              el.childNodes.forEach(item => item.style.backgroundColor = "rgb(255,193,7)")
             );
           }
         })
-        await sleep(60000);
+        await sleep(1000 * 60);
       }
     }
     timer();
-  })
+  }, [])
 
   useEffect(() => {
     if (renderFlgRef.current) {
@@ -99,9 +99,9 @@ const OrderList = ({ orderItem }) => {
       } else {
         const diff = new Date(data[i].reservationTime.replace(/-/g, "/")) - new Date();
         if (diff / (1000 * 60) <= 30.0) {
-          document.querySelector("#row-" + i).childNodes.forEach(el => el.style.backgroundColor = "rgba(255, 86, 137, 0.4)");
+          document.querySelector("#row-" + i).childNodes.forEach(el => el.style.backgroundColor = "rgba(255,193,7)");
           document.querySelectorAll(".row-sub" + i).forEach(el =>
-            el.childNodes.forEach(item => item.style.backgroundColor = "rgba(255, 86, 137, 0.4)")
+            el.childNodes.forEach(item => item.style.backgroundColor = "rgba(255,193,7)")
           );
         } else {
           document.querySelector("#row-" + i).childNodes.forEach(el => el.style.backgroundColor = "transparent");
