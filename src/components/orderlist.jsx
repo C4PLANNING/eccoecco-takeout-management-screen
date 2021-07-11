@@ -166,8 +166,7 @@ const sleep = (time) => {
         <th>メニュー名</th>
         <th>数</th>
         <th>値段</th>
-        <th>顧客名</th>
-        <th>電話番号</th>
+        <th>顧客名<br />電話番号</th>
       </tr>
       </tbody>
 
@@ -179,8 +178,7 @@ const sleep = (time) => {
             <td>{item.orders[0][0]}</td>
             <td>{item.orders[0][1]}</td>
             <td rowspan={item.count}>{item.planPrice}</td>
-            <td rowspan={item.count}>{item.userName}</td>
-            <td rowspan={item.count}>{item.userTel}</td>
+            <td rowspan={item.count}>{item.userName}<br />{item.userTel}</td>
           </tr>
           {item.orders.slice(1).map((row, j) => (
             <tr key={j} class={"row-sub" + i}>

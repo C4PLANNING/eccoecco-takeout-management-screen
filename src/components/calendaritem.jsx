@@ -134,7 +134,7 @@ const CalendarItem = () => {
       }
     }
     calendarHtml = calendarHtml.replace(/\<table\>/, "<table><td rowspan='2'>日付</td>")
-    calendarHtml += '</tr><tr><td>予約数</td>';
+    calendarHtml += '<td>合計</td></tr><tr><td>販売数</td>';
 
     const cur_val = monthly && monthly.current;
     [...Array(dayCount - 1)].map((_, day) => {
@@ -145,7 +145,18 @@ const CalendarItem = () => {
       const _id = `current-${year}-${_month}-${_date}`
       calendarHtml += `<td class="current-booking" id=${_id}>${cur_val ? cur_val[day] : 0}</td>`;
     });
-    calendarHtml += "</tr>";
+    calendarHtml += `<td>${cur_val ? cur_val.reduce((sum, element) => {return sum + element;}, 0) : 0}</td></tr><tr><td>売り上げ額</td>`;
+
+    const cur_sales = monthly && monthly.sales;
+    [...Array(dayCount - 1)].map((_, day) => {
+      //月
+      const _month = ("0" + month).slice(-2);
+      //日
+      const _date = ("0" + (day + 1)).slice(-2);
+      const _id = `current-${year}-${_month}-${_date}`
+      calendarHtml += `<td class="current-sales" id=${_id}>¥ ${cur_sales ? cur_sales[day] : 0}</td>`;
+    });
+    calendarHtml += `<td>¥ ${cur_sales ? cur_sales.reduce((sum, element) => {return sum + element;}, 0): 0}</td></tr>`;
 
     if (editing) {
       calendarHtml += "<tr><td>一括売止</td>";
@@ -191,7 +202,9 @@ const CalendarItem = () => {
   }
 
   const _onclick = (id, flag) => {
-    const _id = id.split("-").slice(1).join("-")
+    const _id = id.split("-").slice(1).join("-");
+    const day = parseInt(_id.split("-").slice(2), 10) - 1;
+    editItem(day);
     setAllStop([flag, _id]);
   }
   
@@ -203,10 +216,13 @@ const CalendarItem = () => {
     let curList = [];
     document.querySelectorAll('.current-booking').forEach(cur => curList.push(parseInt(cur.textContent, 10)));
     
+    let salesList = [];
+    document.querySelectorAll('.current-sales').forEach(cur => salesList.push(parseInt(cur.textContent.slice(2), 10)));
+
     let weekend = [];
     document.querySelectorAll('.week').forEach(day => weekend.push(day.textContent === "日" ? true : false));
     let stopList = []
-    document.querySelectorAll('.stop-booking').forEach((_, i) => stopList.push(weekend[i] || holidays.includes(_month + "-" + ("0" + (i + 1)).slice(-2)) ? true : false));
+    weekend.forEach((_, i) => stopList.push(weekend[i] || holidays.includes(_month + "-" + ("0" + (i + 1)).slice(-2)) ? true : false));
 
     const daily = {}
     stopList.forEach((flag, i) => {
@@ -221,6 +237,7 @@ const CalendarItem = () => {
         .doc(_id)
         .set({
           current: curList,
+          sales: salesList,
           stop: stopList,
           max: daily,
         });

@@ -8,7 +8,7 @@ const useItems = () => {
   const [items, setItems] = useState([]);
 
   useEffect(() => {
-    const unsubscribe = firebase
+    const unsubscribe = 
     firebase
       .firestore()
       .collection("items")
