@@ -20,7 +20,7 @@ const CalendarItem = () => {
   };
   const [isExists, setIsExists] = useState(false);
   const [year, setYear] = useState(date.getFullYear());
-  const [month, setMonth] = useState(date.getMonth() + 1)
+  const [month, setMonth] = useState(date.getMonth() + 1);
   const [monthly, setMonthly] = useState({});
   const [allStop, setAllStop] = useState([false, ""]);
   /* 初期化するためのカラ変数配列 */
@@ -48,7 +48,7 @@ const CalendarItem = () => {
 
   useEffect(() => {
     showCalendar(year, month);
-  }, [monthly, editing])
+  }, [monthly, editing]);
 
   useEffect(() => {
     setEditing(false); 
@@ -91,6 +91,16 @@ const CalendarItem = () => {
         elem.parentNode.removeChild(elem);
       }
       document.querySelectorAll('.stop-booking').forEach((el, day) => el.addEventListener("click", () => _onclick(el.id, el.checked)));
+      let offsetX = 0;
+      //月
+      const _month = ("0" + month).slice(-2);
+      [...Array(date.getDate() - 1)].map((_, day) => {
+        //日
+        const _date = ("0" + (day + 1)).slice(-2);
+        const _id = `current-${year}-${_month}-${_date}`;
+        offsetX += document.querySelector('#' + _id).clientWidth;
+      });
+      document.querySelector('table').scrollLeft = offsetX;
     }
   }
 
@@ -133,8 +143,8 @@ const CalendarItem = () => {
         }
       }
     }
-    calendarHtml = calendarHtml.replace(/\<table\>/, "<table><td rowspan='2'>日付</td>")
-    calendarHtml += '<td>合計</td></tr><tr><td>販売数</td>';
+    calendarHtml = calendarHtml.replace(/\<table\>/, "<table><td class='fixedCol' rowspan='2'>日付</td>")
+    calendarHtml += '<td class="week">合計</td></tr><tr><td class="fixedCol">販売数</td>';
 
     const cur_val = monthly && monthly.current;
     [...Array(dayCount - 1)].map((_, day) => {
@@ -145,7 +155,7 @@ const CalendarItem = () => {
       const _id = `current-${year}-${_month}-${_date}`
       calendarHtml += `<td class="current-booking" id=${_id}>${cur_val ? cur_val[day] : 0}</td>`;
     });
-    calendarHtml += `<td>${cur_val ? cur_val.reduce((sum, element) => {return sum + element;}, 0) : 0}</td></tr><tr><td>売り上げ額</td>`;
+    calendarHtml += `<td>${cur_val ? cur_val.reduce((sum, element) => {return sum + element;}, 0) : 0}</td></tr><tr><td class='fixedCol'>売り上げ額</td>`;
 
     const cur_sales = monthly && monthly.sales;
     [...Array(dayCount - 1)].map((_, day) => {
@@ -154,12 +164,12 @@ const CalendarItem = () => {
       //日
       const _date = ("0" + (day + 1)).slice(-2);
       const _id = `current-${year}-${_month}-${_date}`
-      calendarHtml += `<td class="current-sales" id=${_id}>¥ ${cur_sales ? cur_sales[day] : 0}</td>`;
+      calendarHtml += `<td class="current-sales" id=${_id}>¥ ${cur_sales ? cur_sales[day].toLocaleString() : 0}</td>`;
     });
-    calendarHtml += `<td>¥ ${cur_sales ? cur_sales.reduce((sum, element) => {return sum + element;}, 0): 0}</td></tr>`;
+    calendarHtml += `<td>¥ ${cur_sales ? cur_sales.reduce((sum, element) => {return sum + element;}, 0).toLocaleString() : 0}</td></tr>`;
 
     if (editing) {
-      calendarHtml += "<tr><td>一括売止</td>";
+      calendarHtml += "<tr><td class='fixedCol'>一括売止</td>";
       const stop_flag = monthly && monthly.stop;
       [...Array(dayCount - 1)].map((_, day) => {
         //月
@@ -172,7 +182,7 @@ const CalendarItem = () => {
       calendarHtml += '</tr>';
     }
 
-    calendarHtml += '<tr class="collapse"><td style="min-width: 80px;">販売数上限</td>';
+    calendarHtml += '<tr class="collapse"><td style="min-width: 80px;" class="fixedCol">販売数上限</td>';
     [...Array(dayCount - 1)].map((_, day) => {
       calendarHtml += `<td><button class="button">▽</button></td>`;
     });

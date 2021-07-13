@@ -1,0 +1,6 @@
+indexes:
+  - kind: transactions
+    properties:
+      - name: reservationTime
+      - name: timestamp
+        direction: desc

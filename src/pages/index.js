@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Link, navigate } from "gatsby";
+import { getUser, isLoggedIn, logout } from "../services/auth";
 import {
   createMuiTheme,
   ThemeProvider,
@@ -6,8 +8,9 @@ import {
   createStyles,
 } from "@material-ui/core/styles";
 import Container from "@material-ui/core/Container";
-import Typography from "@material-ui/core/Typography";
+
 import Box from "@material-ui/core/Box";
+import Button from "@material-ui/core/Button";
 
 import firebase from "firebase/app";
 import "firebase/firestore";
@@ -16,41 +19,37 @@ import ItemList from "../components/itemlist";
 import AddItemForm from "../components/additemform";
 import UpdateItem from "../components/updateitem";
 import CalendarItem from "../components/calendaritem";
+import Transaction from "../components/transaction";
 import "../styles/global.css";
 
 import { jaJP } from "@material-ui/core/locale";
-import AppBar from "@material-ui/core/AppBar";
-import Toolbar from "@material-ui/core/Toolbar";
 import CenteredTabs from "../components/CenteredTabs";
 
 const useStyles = makeStyles((theme) =>
   createStyles({
-    toolbar: {
-      paddingRight: 24,
-      backgroundColor: "#5288B0",
-    },
-    headerLeft: {
-      display: "flex",
-      // justifyContent: "space-around",
-      color: "#fff",
-      marginRight: "auto",
-    },
-    appBarSpacer: {
-      minHeight: 64,
-    },
     content: {
       flexGrow: 1,
       height: "100vh",
       overflow: "auto",
     },
     container: {
-      paddingTop: 32,
-      paddingBottom: 32,
+      paddingTop: 16,
+      paddingRight: 0,
+      paddingLeft: 0,
     },
   })
 );
 
-const theme = createMuiTheme({}, jaJP);
+const theme = createMuiTheme(
+  {
+    typography: {
+      body1: {
+        fontSize: 14,
+      },
+    },
+  },
+  jaJP
+);
 
 export default () => {
   const classes = useStyles();
@@ -71,6 +70,18 @@ export default () => {
 
   /* 編集モードフラッグステート変数をセット */
   const [editing, setEditing] = useState(false);
+  const [greetingMessage, setGreetingMessage] = useState("");
+
+  useEffect(() => {
+    let _greetingMessage = "";
+    if (isLoggedIn()) {
+      _greetingMessage = `Hello ${getUser().name} さん`;
+    } else {
+      _greetingMessage = "ログインしていません";
+      navigate(`/login`);
+    }
+    setGreetingMessage(_greetingMessage);
+  }, []);
 
   /* editモードをtrueにしてcurrentItemにEditボタンを押下したitemを格納　*/
   const editItem = (item) => {
@@ -102,19 +113,27 @@ export default () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <AppBar>
-        <Toolbar className={classes.toolbar}>
-          <div className={classes.headerLeft}>
-            <Typography variant="h6" component="h1" gutterBottom>
-              エッコ・エッコ上野店 LINEテイクアウト管理画面{" "}
-            </Typography>
-          </div>
-        </Toolbar>
-      </AppBar>
       <main className={classes.content}>
-        <div className={classes.appBarSpacer} />
         <Container maxWidth="sm" className={classes.container}>
-          <CenteredTabs labels={["オーダー", "販売数管理", "メニュー"]}>
+          <Box display="flex">
+            <span>{greetingMessage}</span>
+            {isLoggedIn() ? (
+              <Button
+                style={{
+                  marginLeft: "auto",
+                  backgroundColor: "mediumslateblue",
+                  color: "white",
+                }}
+              >
+                <Link to="/login" onClick={logout} style={{ color: "white" }}>
+                  ログアウト
+                </Link>
+              </Button>
+            ) : (
+              <Link to="/login">ログイン</Link>
+            )}
+          </Box>
+          <CenteredTabs labels={["オーダー", "販売数管理", "メニュー", "履歴"]}>
             <Box my={4}>
               <h2>オーダー一覧</h2>
               <OrderList />
@@ -137,6 +156,11 @@ export default () => {
                   updateItem={updateItem}
                 />
               )}
+            </Box>
+
+            <Box my={4}>
+              <h2>オーダー履歴</h2>
+              <Transaction />
             </Box>
           </CenteredTabs>
         </Container>

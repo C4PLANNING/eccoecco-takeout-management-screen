@@ -20,11 +20,14 @@ const OrderList = ({ orderItem }) => {
 
   useEffect(() => {
     const _data = Array.from(items);
+    const [year, month, day] = selectedDate.toLocaleDateString().split("/");
+    const key = year + "-" + ("0" + month).slice(-2);
     const unsubscribe = 
     firebase
       .firestore()
       .collection("transaction")
-      .orderBy("reservationTime")
+      .doc("monthly")
+      .collection(key)
       .onSnapshot(snapshot => {
         
         let modDate = ""
@@ -36,7 +39,7 @@ const OrderList = ({ orderItem }) => {
             orders: order.planName.split("\n").map((value) => value.split("×")),
             count: order.planName.split("\n").length,
             ...order,
-            }
+          }
           if (changeType === "modified") {
             modDate = change.doc.data().reservationTime.split(' ')[0];
             const index = _data.findIndex(ord => ord.id === change.doc.id);
@@ -47,7 +50,7 @@ const OrderList = ({ orderItem }) => {
             console.error("error: type not found.")
           }
         });
-        setItems(_data);
+        setItems(_data.sort((a, b) => a.reservationTime < b.reservationTime ? -1 : 1));
         const newData = _data.filter(item => item.reservationTime.split(' ')[0] === (modDate ? modDate : zeroPadding(selectedDate.toLocaleDateString())));
         setData(newData);
         setFlag(newData.map(item => item.finished));
@@ -126,12 +129,14 @@ const sleep = (time) => {
   };
 
   const zeroPadding = (date) => {
-    var [year, month, day] = date.split("/");
+    const [year, month, day] = date.split("/");
     return year + "-" + ("0" + month).slice(-2) + "-" + ("0" + day).slice(-2);
   }
 
   const updateFlag = (i) => {
-    firebase.firestore().collection("transaction").doc(data[i].id).update({
+    const [year, month, day] = selectedDate.toLocaleDateString().split("/");
+    const key = year + "-" + ("0" + month).slice(-2)
+    firebase.firestore().collection("transaction").doc("monthly").collection(key).doc(data[i].id).update({
       finished: !flag[i]
     });
     const newFlag = Array.from(flag);
