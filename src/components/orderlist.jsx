@@ -10,13 +10,24 @@ import {
   KeyboardTimePicker,
   KeyboardDatePicker,
 } from '@material-ui/pickers';
+import Box from "@material-ui/core/Box";
+import { makeStyles } from "@material-ui/core/styles";
+import Typography from "@material-ui/core/Typography";
+
+const useStyles = makeStyles((theme) => ({
+  flexItem: {
+    flex: "1 1 60%"
+  },
+}));
 
 const OrderList = ({ orderItem }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [flag, setFlag] = useState([]);
   const [data, setData] = useState([]);
   const [items, setItems] = useState([]);
+  const [alert, setAlert] = useState([]);
   const renderFlgRef = useRef(null);
+  const classes = useStyles();
 
   useEffect(() => {
     const _data = Array.from(items);
@@ -59,25 +70,30 @@ const OrderList = ({ orderItem }) => {
     return () => unsubscribe();
   }, []);
 
+  const updateAlert = () => {
+    const now = new Date();
+    let newAlert = [];
+    data.forEach((item, i) => {
+      const diff = new Date(item.reservationTime.replace(/-/g, "/")) - now;
+      if (diff / (1000 * 60) <= 30.0 && !item.finished) {
+        document.querySelector("#row-" + i).childNodes.forEach(el => el.style.backgroundColor = "rgb(255,193,7)");
+        document.querySelectorAll(".row-sub" + i).forEach(el =>
+          el.childNodes.forEach(item => item.style.backgroundColor = "rgb(255,193,7)")
+        );
+        newAlert[i] = true;
+      }
+    })
+    setAlert(newAlert);
+  }
+
   // 30分前のオーダーに赤背景をつける
   useEffect(() => {
-    const timer = async () => {
-      while (1) {
-        const now = new Date();
-        data.forEach((item, i) => {
-          const diff = new Date(item.reservationTime.replace(/-/g, "/")) - now;
-          if (diff / (1000 * 60) <= 30.0 && !flag[i]) {
-            document.querySelector("#row-" + i).childNodes.forEach(el => el.style.backgroundColor = "rgb(255,193,7)");
-            document.querySelectorAll(".row-sub" + i).forEach(el =>
-              el.childNodes.forEach(item => item.style.backgroundColor = "rgb(255,193,7)")
-            );
-          }
-        })
-        await sleep(1000 * 60);
-      }
-    }
-    timer();
-  }, [])
+    updateAlert();
+    const timer = setInterval(() => {
+      updateAlert();
+    }, 1000 * 60);
+    return () => clearInterval(timer);
+  }, [data])
 
   useEffect(() => {
     if (renderFlgRef.current) {
@@ -93,12 +109,14 @@ const OrderList = ({ orderItem }) => {
     document.querySelectorAll(".finished").forEach((el, i) => {
       el.checked = flag[i];
     })
+    const newAlert = [];
     flag.forEach((checked, i) => {
       if (checked) {
         document.querySelector("#row-" + i).childNodes.forEach(el => el.style.backgroundColor = "rgba(40, 255, 244, 0.4)");
         document.querySelectorAll(".row-sub" + i).forEach(el =>
           el.childNodes.forEach(item => item.style.backgroundColor = "rgba(40, 255, 244, 0.4)")
         );
+        newAlert[i] = false;
       } else {
         const diff = new Date(data[i].reservationTime.replace(/-/g, "/")) - new Date();
         if (diff / (1000 * 60) <= 30.0) {
@@ -106,6 +124,7 @@ const OrderList = ({ orderItem }) => {
           document.querySelectorAll(".row-sub" + i).forEach(el =>
             el.childNodes.forEach(item => item.style.backgroundColor = "rgba(255,193,7)")
           );
+          newAlert[i] = true;
         } else {
           document.querySelector("#row-" + i).childNodes.forEach(el => el.style.backgroundColor = "transparent");
           document.querySelectorAll(".row-sub" + i).forEach(el =>
@@ -114,6 +133,7 @@ const OrderList = ({ orderItem }) => {
         }
       }
     });
+    setAlert(newAlert);
   }, [flag])
 
 const sleep = (time) => {
@@ -146,23 +166,32 @@ const sleep = (time) => {
 
   return (
     <>
-     <MuiPickersUtilsProvider utils={DateFnsUtils}>
-      <Grid container justifyContent="space-around">
-        <KeyboardDatePicker
-          disableToolbar
-          variant="inline"
-          format="yyyy-MM-dd"
-          margin="normal"
-          id="date-picker-inline"
-          label="オーダー日"
-          value={selectedDate}
-          onChange={handleDateChange}
-          KeyboardButtonProps={{
-            'aria-label': 'change date',
-          }}
-        />
-      </Grid>
-    </MuiPickersUtilsProvider>
+      <Box display="flex">
+        <MuiPickersUtilsProvider utils={DateFnsUtils}>
+          <Grid container justifyContent="space-around"  className={classes.flexItem}>
+            <KeyboardDatePicker
+              disableToolbar
+              variant="inline"
+              format="yyyy-MM-dd"
+              margin="normal"
+              id="date-picker-inline"
+              label="オーダー日"
+              value={selectedDate}
+              onChange={handleDateChange}
+              KeyboardButtonProps={{
+                'aria-label': 'change date',
+              }}
+            />
+          </Grid>
+        </MuiPickersUtilsProvider>
+
+        <Box>
+          <Typography variant="caption">
+            30分前オーダー
+          </Typography>
+          <Typography color="secondary" variant="h3">{alert.filter(i => i).length}</Typography>
+        </Box>
+      </Box>
     <table className="tg">
       <tbody>
       <tr>
@@ -174,7 +203,6 @@ const sleep = (time) => {
         <th>顧客名<br />電話番号</th>
       </tr>
       </tbody>
-
       {data.map((item, i) => (
         <tbody key={item.id}>
           <tr id={"row-" + i}>

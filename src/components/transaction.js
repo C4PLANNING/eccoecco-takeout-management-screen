@@ -73,7 +73,7 @@ const Transaction = () => {
     }
   };
 
-  const fetchData = async (year, month) => {
+  const fetchData = async () => {
     setChange(false);
     const _month = ("0" + month).slice(-2);
     const key = `${year}-${_month}`;
@@ -106,6 +106,7 @@ const Transaction = () => {
       const order = doc.data();
       orders.push(order);
     });
+
     if (querySnapshot.docs.length < limit) {
       // limitより少なければ、次のデータはないとする ... limitと同値の時は次へが表示されてしまう
       return { orders, nextPageToken: "" };
@@ -114,6 +115,7 @@ const Transaction = () => {
     const last = querySnapshot.docs[querySnapshot.docs.length - 1];
     const lastData = last.data();
     const time = lastData.timestamp;
+
     let nextToken = `${time.seconds}${splitter}${time.nanoseconds}`;
     return { orders, nextPageToken: nextToken };
   };
