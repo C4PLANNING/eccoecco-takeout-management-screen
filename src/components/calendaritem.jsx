@@ -232,7 +232,7 @@ const CalendarItem = () => {
     let weekend = [];
     document.querySelectorAll('.week').forEach(day => weekend.push(day.textContent === "日" ? true : false));
     let stopList = []
-    weekend.forEach((_, i) => stopList.push(weekend[i] || holidays.includes(_month + "-" + ("0" + (i + 1)).slice(-2)) ? true : false));
+    weekend.slice(0, -1).forEach((_, i) => stopList.push(weekend[i] || holidays.includes(_month + "-" + ("0" + (i + 1)).slice(-2)) ? true : false));
 
     const daily = {}
     stopList.forEach((flag, i) => {
