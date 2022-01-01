@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import firebase from "firebase/app";
 import "firebase/firestore";
 
-const timeList = ["11時台", "12時台", "13時台", "14時台", "17時台", "18時台", "19時台", "20時台", "21時台"];
+const timeList = ["11時台", "12時台", "13時台", "14時台", "17時台", "18時台", "19時台"];
 const UpdateBookingMaxItem = ({ setEditing, currentItem, allStop }) => {
   const [item, setItem] = useState(currentItem);
   const [flag, setFlag] = useState([]);

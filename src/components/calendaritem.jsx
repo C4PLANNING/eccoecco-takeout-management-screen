@@ -13,7 +13,8 @@ const holidays = ["01-01", "01-10", "02-11", "02-23", "03-21", "04-29", "05-03",
 const CalendarItem = () => {
   const DEFAULT_ORDER_LIMIT = 5;
   const weeks = ['日', '月', '火', '水', '木', '金', '土'];
-  const timeList = ["11時台", "12時台", "13時台", "14時台", "17時台", "18時台", "19時台", "20時台", "21時台"];
+  // 20時以降は受け付けない
+  const timeList = ["11時台", "12時台", "13時台", "14時台", "17時台", "18時台", "19時台"];
   const date = new Date();
   const config = {
     show: 1,
@@ -230,8 +231,10 @@ const CalendarItem = () => {
     document.querySelectorAll('.current-sales').forEach(cur => salesList.push(parseInt(cur.textContent.slice(2), 10)));
 
     let weekend = [];
-    document.querySelectorAll('.week').forEach(day => weekend.push(day.textContent === "日" ? true : false));
+    // 土曜日も定休日
+    document.querySelectorAll('.week').forEach(day => weekend.push((day.textContent === "日" || day.textContent === "土") ? true : false));
     let stopList = []
+    // 合計の.weekを除外
     weekend.slice(0, -1).forEach((_, i) => stopList.push(weekend[i] || holidays.includes(_month + "-" + ("0" + (i + 1)).slice(-2)) ? true : false));
 
     const daily = {}
